@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SoulMatch — найди собеседника</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: var(--tg-theme-bg-color, #17212b);
+    --secondary-bg: var(--tg-theme-secondary-bg-color, #232e3c);
+    --text: var(--tg-theme-text-color, #ffffff);
+    --hint: var(--tg-theme-hint-color, #708499);
+    --link: var(--tg-theme-link-color, #6ab3f3);
+    --btn: var(--tg-theme-button-color, #5288c1);
+    --btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --accent: #6ab3f3;
+  }
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  body {
+    background-attachment: fixed;
+    background-size: 60px 60px;
+    background-position: center;
+    transition: background-image .4s ease;
+  }
+  
+  /* Фоны */
+  body.bg-cats {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><text x='30' y='40' font-size='30' text-anchor='middle'>🐱</text></svg>");
+  }
+  body.bg-dogs {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><text x='30' y='40' font-size='30' text-anchor='middle'>🐶</text></svg>");
+  }
+  body.bg-ufo {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><text x='30' y='40' font-size='30' text-anchor='middle'>🛸</text></svg>");
+  }
+  body.bg-rockets {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><text x='30' y='40' font-size='30' text-anchor='middle'>🚀</text></svg>");
+  }
+  body.bg-hearts {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><text x='30' y='40' font-size='30' text-anchor='middle'>💖</text></svg>");
+  }
+  body.bg-questions {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><text x='30' y='45' font-size='40' text-anchor='middle' fill='%236ab3f3' opacity='0.3'>?</text></svg>");
+  }
+  body.bg-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-image: none;
+  }
+  body.bg-gradient2 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background-image: none;
+  }
+  body.bg-gradient3 {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background-image: none;
+  }
+  body.bg-gradient4 {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background-image: none;
+  }
+  body.bg-gradient5 {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    background-image: none;
+  }
+
+  #app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    padding-bottom: 100px;
+  }
+  .header {
+    text-align: center;
+    padding: 20px 0 30px;
+  }
+  .header h1 {
+    font-size: 32px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #6ab3f3, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .header p { color: var(--hint); font-size: 15px; }
+  
+  .question-card {
+    background: var(--secondary-bg);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.05);
+  }
+  .question-card h2 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .question-card p {
+    color: var(--hint);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .q-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6ab3f3, #a855f7);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+    transition: border-color .2s;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  
+  .options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .option {
+    background: var(--bg);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    font-size: 15px;
+  }
+  .option:hover { border-color: var(--accent); }
+  .option.selected {
+    background: linear-gradient(135deg, rgba(106,179,243,.2), rgba(168,85,247,.2));
+    border-color: var(--accent);
+  }
+  
+  .bg-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .bg-option {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bg-option:hover { border-color: var(--accent); }
+  .bg-option.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(106,179,243,.4);
+  }
+  .bg-option[data-bg="cats"] { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+  .bg-option[data-bg="dogs"] { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+  .bg-option[data-bg="ufo"] { background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); }
+  .bg-option[data-bg="rockets"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .bg-option[data-bg="hearts"] { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .bg-option[data-bg="questions"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .bg-option[data-bg="gradient"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .bg-option[data-bg="gradient2"] { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .bg-option[data-bg="gradient3"] { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .bg-option[data-bg="gradient4"] { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+  .bg-option[data-bg="gradient5"] { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+  
+  .btn {
+    background: var(--btn);
+    color: var(--btn-text);
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 20px;
+    transition: transform .1s, opacity .2s;
+    box-shadow: 0 4px 20px rgba(82,136,193,.3);
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  
+  /* Search overlay */
+  #searchOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 1000;
+    text-align: center;
+    padding: 20px;
+  }
+  #searchOverlay.active { display: flex; }
+  .loader {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent, var(--accent));
+    animation: spin 1.2s linear infinite;
+    position: relative;
+    margin-bottom: 30px;
+  }
+  .loader::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    background: var(--bg);
+    border-radius: 50%;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .search-status { font-size: 20px; margin-bottom: 10px; }
+  .search-hint { color: var(--hint); font-size: 15px; }
+  
+  /* Chat */
+  #chatScreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    flex-direction: column;
+    background: var(--bg);
+    z-index: 1001;
+  }
+  #chatScreen.active { display: flex; }
+  .chat-header {
+    background: var(--secondary-bg);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6ab3f3, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .chat-info h3 { font-size: 17px; }
+  .chat-info p { font-size: 13px; color: var(--hint); }
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg);
+  }
+  .msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.4;
+    animation: msgIn .3s ease;
+    word-wrap: break-word;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg.them {
+    align-self: flex-start;
+    background: var(--secondary-bg);
+    border-bottom-left-radius: 4px;
+  }
+  .msg.me {
+    align-self: flex-end;
+    background: var(--btn);
+    color: var(--btn-text);
+    border-bottom-right-radius: 4px;
+  }
+  .msg.typing {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+  .typing-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--hint);
+    animation: bounce 1.4s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .2s; }
+  .typing-dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+  .chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    background: var(--secondary-bg);
+    border-top: 1px solid rgba(255,255,255,.05);
+  }
+  .chat-input input {
+    flex: 1;
+    background: var(--bg);
+    border-radius: 20px;
+    padding: 10px 16px;
+  }
+  .send-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--btn);
+    color: var(--btn-text);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  
+  .emoji { font-size: 50px; text-align: center; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <div class="emoji">✨</div>
+    <h1>SoulMatch</h1>
+    <p>Заполни анкету и найди идеального собеседника</p>
+  </div>
+
+  <!-- Q0: BACKGROUND -->
+  <div class="question-card">
+    <h2><span class="q-number">0</span> Выбери фон</h2>
+    <p>Какой фон тебе нравится больше?</p>
+    <div class="bg-options">
+      <div class="bg-option" data-bg="cats" onclick="selectBg(this)">🐱</div>
+      <div class="bg-option" data-bg="dogs" onclick="selectBg(this)">🐶</div>
+      <div class="bg-option" data-bg="ufo" onclick="selectBg(this)">🛸</div>
+      <div class="bg-option" data-bg="rockets" onclick="selectBg(this)">🚀</div>
+      <div class="bg-option" data-bg="hearts" onclick="selectBg(this)">💖</div>
+      <div class="bg-option" data-bg="questions" onclick="selectBg(this)">❓</div>
+      <div class="bg-option" data-bg="gradient" onclick="selectBg(this)">🌈</div>
+      <div class="bg-option" data-bg="gradient2" onclick="selectBg(this)">🌸</div>
+      <div class="bg-option" data-bg="gradient3" onclick="selectBg(this)">🌊</div>
+      <div class="bg-option" data-bg="gradient4" onclick="selectBg(this)">🌿</div>
+      <div class="bg-option" data-bg="gradient5" onclick="selectBg(this)">🌅</div>
+    </div>
+  </div>
+
+  <!-- Q1: AGE -->
+  <div class="question-card">
+    <h2><span class="q-number">1</span> Сколько тебе лет?</h2>
+    <p>Это поможет подобрать собеседника из твоей возрастной группы.</p>
+    <input type="number" id="age" placeholder="Например, 22" min="10" max="100">
+  </div>
+
+  <!-- Q2: BIRTH YEAR -->
+  <div class="question-card">
+    <h2><span class="q-number">2</span> В каком году ты родился?</h2>
+    <p>Сегодня 14 ноября 2026 года. Подсказка: если тебе 22 — то это 2004 год.</p>
+    <input type="number" id="birthYear" placeholder="Например, 2004" min="1930" max="2020">
+  </div>
+
+  <!-- Q3: ZODIAC -->
+  <div class="question-card">
+    <h2><span class="q-number">3</span> Твой знак зодиака ♌</h2>
+    <p>Астрология — это не наука, но многие находят в ней общие темы для разговора.</p>
+    <div class="options" id="zodiacOptions"></div>
+  </div>
+
+  <!-- Q4: BOOKS -->
+  <div class="question-card">
+    <h2><span class="q-number">4</span> Какие книги ты любишь? 📚</h2>
+    <p>Выбери жанры или напиши свои любимые произведения.</p>
+    <div class="options" id="bookOptions"></div>
+    <input type="text" id="bookCustom" placeholder="Или напиши свои любимые книги..." style="margin-top:12px">
+  </div>
+
+  <!-- Q5: MOVIES -->
+  <div class="question-card">
+    <h2><span class="q-number">5</span> Какие жанры кино тебе нравятся? 🎬</h2>
+    <p>Выбери несколько — это поможет найти общие темы.</p>
+    <div class="options" id="movieOptions"></div>
+  </div>
+
+  <!-- Q6: FOOD -->
+  <div class="question-card">
+    <h2><span class="q-number">6</span> Какая твоя любимая еда? 🍕</h2>
+    <p>Расскажи, что ты любишь есть больше всего.</p>
+    <input type="text" id="food" placeholder="Например, пицца, суши, паста...">
+  </div>
+
+  <!-- Q7: SEASON -->
+  <div class="question-card">
+    <h2><span class="q-number">7</span> Какое время года ты любишь? 🍂</h2>
+    <p>Выбери своё любимое время года.</p>
+    <div class="options" id="seasonOptions"></div>
+  </div>
+
+  <!-- Q8: EXTRA -->
+  <div class="question-card">
+    <h2><span class="q-number">8</span> Расскажи что-нибудь о себе 📝</h2>
+    <p>Это может быть что угодно: «обожаю кошек», «фанат аниме», «играю на гитаре», «люблю готовить пасту» — всё, что считаете важным.</p>
+    <textarea id="extraInfo" placeholder="Напиши пару предложений о себе..."></textarea>
+  </div>
+
+  <!-- Q9: PARTNER GENDER -->
+  <div class="question-card">
+    <h2><span class="q-number">9</span> Кого ищем? 👤</h2>
+    <p>Какого пола должен быть твой собеседник?</p>
+    <div class="options">
+      <div class="option" data-gender="male" onclick="selectGender(this)">👨 Парня</div>
+      <div class="option" data-gender="female" onclick="selectGender(this)">👩 Девушку</div>
+      <div class="option" data-gender="any" onclick="selectGender(this)">🌈 Не важно</div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="startSearch()">✨ Найти собеседника</button>
+
+</div>
+
+<!-- Search Overlay -->
+<div id="searchOverlay">
+  <div class="loader"></div>
+  <div class="search-status" id="searchStatus">Ищем подходящего собеседника...</div>
+  <div class="search-hint" id="searchHint">Анализируем твои интересы</div>
+</div>
+
+<!-- Chat Screen -->
+<div id="chatScreen">
+  <div class="chat-header">
+    <div class="avatar" id="partnerAvatar">?</div>
+    <div class="chat-info">
+      <h3 id="partnerName">Собеседник</h3>
+      <p id="partnerStatus">в сети</p>
+    </div>
+  </div>
+  <div class="messages" id="messages"></div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Напиши сообщение..." onkeypress="if(event.key==='Enter')sendMessage()">
+    <button class="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+// ===== Telegram WebApp init =====
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+// ===== State =====
+const profile = {
+  bg: null,
+  age: null,
+  birthYear: null,
+  zodiac: null,
+  books: [],
+  movies: [],
+  food: '',
+  season: null,
+  extra: '',
+  partnerGender: null
+};
+
+// ===== Background selection =====
+function selectBg(el) {
+  document.querySelectorAll('.bg-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  profile.bg = el.dataset.bg;
+  
+  // Apply background
+  document.body.className = '';
+  document.body.classList.add('bg-' + profile.bg);
+  
+  if (tg) tg.HapticFeedback && tg.HapticFeedback.impactOccurred('light');
+}
+
+// ===== Q3: Zodiac =====
+const zodiacs = ['♈ Овен','♉ Телец','♊ Близнецы','♋ Рак','♌ Лев','♍ Дева',
+                 '♎ Весы','♏ Скорпион','♐ Стрелец','♑ Козерог','♒ Водолей','♓ Рыбы'];
+const zodBox = document.getElementById('zodiacOptions');
+zodiacs.forEach(z => {
+  const d = document.createElement('div');
+  d.className = 'option';
+  d.textContent = z;
+  d.onclick = () => {
+    zodBox.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+    d.classList.add('selected');
+    profile.zodiac = z;
+  };
+  zodBox.appendChild(d);
+});
+
+// ===== Q4: Books =====
+const bookGenres = ['Фантастика','Детектив','Роман','Фэнтези','Психология','Классика','Non-fiction','Поэзия'];
+const bookBox = document.getElementById('bookOptions');
+bookGenres.forEach(g => {
+  const d = document.createElement('div');
+  d.className = 'option';
+  d.textContent = g;
+  d.onclick = () => {
+    d.classList.toggle('selected');
+    if (d.classList.contains('selected')) profile.books.push(g);
+    else profile.books = profile.books.filter(b => b !== g);
+  };
+  bookBox.appendChild(d);
+});
+
+// ===== Q5: Movies =====
+const movieGenres = ['Боевик','Комедия','Драма','Ужасы','Фантастика','Мелодрама','Триллер','Аниме'];
+const movBox = document.getElementById('movieOptions');
+movieGenres.forEach(g => {
+  const d = document.createElement('div');
+  d.className = 'option';
+  d.textContent = g;
+  d.onclick = () => {
+    d.classList.toggle('selected');
+    if (d.classList.contains('selected')) profile.movies.push(g);
+    else profile.movies = profile.movies.filter(m => m !== g);
+  };
+  movBox.appendChild(d);
+});
+
+// ===== Q7: Season =====
+const seasons = [
+  {name: 'Весна', emoji: '🌸'},
+  {name: 'Лето', emoji: '☀️'},
+  {name: 'Осень', emoji: '🍂'},
+  {name: 'Зима', emoji: '❄️'}
+];
+const seasonBox = document.getElementById('seasonOptions');
+seasons.forEach(s => {
+  const d = document.createElement('div');
+  d.className = 'option';
+  d.textContent = s.emoji + ' ' + s.name;
+  d.onclick = () => {
+    seasonBox.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+    d.classList.add('selected');
+    profile.season = s.name;
+  };
+  seasonBox.appendChild(d);
+});
+
+// ===== Q9: Gender =====
+function selectGender(el) {
+  document.querySelectorAll('[data-gender]').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  profile.partnerGender = el.dataset.gender;
+}
+
+// ===== Start search =====
+function startSearch() {
+  // Collect all data
+  profile.age = parseInt(document.getElementById('age').value);
+  profile.birthYear = parseInt(document.getElementById('birthYear').value);
+  const customBooks = document.getElementById('bookCustom').value.trim();
+  if (customBooks) profile.books.push(customBooks);
+  profile.food = document.getElementById('food').value.trim();
+  profile.extra = document.getElementById('extraInfo').value.trim();
+  
+  // Validation
+  if (!profile.age || profile.age < 10 || profile.age > 100) {
+    shake();
+    document.getElementById('age').focus();
+    return;
+  }
+  if (!profile.birthYear || profile.birthYear < 1930 || profile.birthYear > 2020) {
+    shake();
+    document.getElementById('birthYear').focus();
+    return;
+  }
+  if (!profile.zodiac) { shake(); return; }
+  if (profile.books.length === 0) { shake(); return; }
+  if (profile.movies.length === 0) { shake(); return; }
+  if (!profile.partnerGender) { shake(); return; }
+  
+  document.getElementById('searchOverlay').classList.add('active');
+  runSearch();
+}
+
+function shake() {
+  if (tg) tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('error');
+}
+
+// ===== Search animation =====
+const searchSteps = [
+  ['Анализируем твои интересы...', '🔍'],
+  ['Подбираем по знаку зодиака...', '⭐'],
+  ['Ищем общие темы для разговоров...', '💬'],
+  ['Проверяем совместимость...', '💞'],
+  ['Нашли подходящего человека!', '✨']
+];
+async function runSearch() {
+  for (let i = 0; i < searchSteps.length; i++) {
+    document.getElementById('searchStatus').textContent = searchSteps[i][0];
+    document.getElementById('searchHint').textContent = searchSteps[i][1];
+    await new Promise(r => setTimeout(r, 900));
+  }
+  if (tg) tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+  setTimeout(openChat, 500);
+}
+
+// ===== Generate partner =====
+const maleNames = ['Алексей','Дмитрий','Максим','Иван','Артём','Никита','Михаил','Даниил','Егор','Кирилл','Андрей','Сергей'];
+const femaleNames = ['Анна','Мария','Екатерина','София','Алиса','Полина','Виктория','Дарья','Елизавета','Ксения','Ольга','Юлия'];
+
+function pick(arr, seed) { return arr[seed % arr.length]; }
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+
+let partner = null;
+
+function generatePartner() {
+  const seed = hashStr(JSON.stringify(profile) + (tg?.initDataUnsafe?.user?.id || Date.now()));
+  const gender = profile.partnerGender === 'any'
+    ? (seed % 2 === 0 ? 'male' : 'female')
+    : profile.partnerGender;
+
+  const names = gender === 'male' ? maleNames : femaleNames;
+  const name = pick(names, seed);
+
+  // Age: close to user
+  const ageOffset = ((seed % 7) - 3);
+  const age = Math.max(14, Math.min(60, profile.age + ageOffset));
+
+  // Zodiac: compatible
+  const zodiacCompat = {
+    '♈ Овен': ['♌ Лев','♐ Стрелец','♊ Близнецы'],
+    '♉ Телец': ['♍ Дева','♑ Козерог','♋ Рак'],
+    '♊ Близнецы': ['♎ Весы','♒ Водолей','♈ Овен'],
+    '♋ Рак': ['♏ Скорпион','♓ Рыбы','♉ Телец'],
+    '♌ Лев': ['♐ Стрелец','♈ Овен','♊ Близнецы'],
+    '♍ Дева': ['♉ Телец','♑ Козерог','♋ Рак'],
+    '♎ Весы': ['♊ Близнецы','♒ Водолей','♌ Лев'],
+    '♏ Скорпион': ['♋ Рак','♓ Рыбы','♍ Дева'],
+    '♐ Стрелец': ['♈ Овен','♌ Лев','♎ Весы'],
+    '♑ Козерог': ['♉ Телец','♍ Дева','♏ Скорпион'],
+    '♒ Водолей': ['♊ Близнецы','♎ Весы','♐ Стрелец'],
+    '♓ Рыбы': ['♋ Рак','♏ Скорпион','♍ Дева']
+  };
+  const compatible = zodiacCompat[profile.zodiac] || ['♎ Весы'];
+  const partnerZodiac = pick(compatible, seed + 1);
+
+  // Books: overlap at least one
+  const books = [...profile.books];
+  if (seed % 3 === 0 && books.length > 1) books.pop();
+  if (seed % 4 === 0) books.push('философия');
+
+  // Movies: overlap
+  const movies = [...profile.movies];
+  if (seed % 5 === 0 && movies.length > 1) movies.shift();
+
+  // Food: sometimes same
+  const food = (seed % 3 === 0) ? profile.food : pick(['пицца','суши','паста','бургеры','салаты','фрукты'], seed + 3);
+
+  // Season: sometimes same
+  const season = (seed % 2 === 0) ? profile.season : pick(['Весна','Лето','Осень','Зима'], seed + 4);
+
+  // Personality traits based on extra info
+  const traits = [];
+  const extraLower = profile.extra.toLowerCase();
+  if (extraLower.includes('кош') || extraLower.includes('кот')) traits.push('кошатник');
+  if (extraLower.includes('собак') || extraLower.includes('пёс') || extraLower.includes('пес')) traits.push('собачник');
+  if (extraLower.includes('аниме') || extraLower.includes('манг')) traits.push('анимешник');
+  if (extraLower.includes('музык') || extraLower.includes('гитар') || extraLower.includes('пианино')) traits.push('музыкант');
+  if (extraLower.includes('игр') || extraLower.includes('game')) traits.push('геймер');
+  if (extraLower.includes('спорт') || extraLower.includes('фитнес') || extraLower.includes('бег')) traits.push('спортсмен');
+  if (extraLower.includes('путеш') || extraLower.includes('travel')) traits.push('путешественник');
+  if (extraLower.includes('готов') || extraLower.includes('кухн') || extraLower.includes('паст')) traits.push('кулинар');
+  if (traits.length === 0) traits.push(pick(['мечтатель','философ','оптимист','творческая натура'], seed));
+
+  // Communication style
+  const styles = ['дружелюбный','спокойный','энергичный','задумчивый','с юмором'];
+  const style = pick(styles, seed + 2);
+
+  return {
+    name, gender, age, zodiac: partnerZodiac,
+    books, movies, food, season, traits, style,
+    initial: name[0]
+  };
+}
+
+// ===== Open chat =====
+function openChat() {
+  partner = generatePartner();
+  document.getElementById('searchOverlay').classList.remove('active');
+  document.getElementById('partnerName').textContent = `${partner.name}, ${partner.age}`;
+  document.getElementById('partnerStatus').textContent = `${partner.zodiac} • ${partner.style}`;
+  document.getElementById('partnerAvatar').textContent = partner.initial;
+  document.getElementById('chatScreen').classList.add('active');
+
+  // First message from partner
+  setTimeout(() => {
+    const greeting = buildGreeting();
+    addMessage(greeting, 'them');
+  }, 800);
+}
+
+function buildGreeting() {
+  const greetings = [
+    `Привет! Я ${partner.name}. Мне ИИ сказал, что мы можем отлично поладить 😊`,
+    `Хей! Рад(а) знакомству. Меня зовут ${partner.name}.`,
+    `Привет-привет! Интересно, что у нас общего?`
+  ];
+  let msg = pick(greetings, partner.name.length);
+
+  // Add common interest hook
+  const commonBooks = partner.books.filter(b => profile.books.includes(b));
+  const commonMovies = partner.movies.filter(m => profile.movies.includes(m));
+
+  if (commonBooks.length > 0) {
+    msg += ` Кстати, слышал(а), ты тоже любишь ${commonBooks[0].toLowerCase()}? Я просто фанатею от этого!`;
+  } else if (commonMovies.length > 0) {
+    msg += ` Говорят, тебе нравятся ${commonMovies[0].toLowerCase()}? У меня тоже слабость к ним.`;
+  } else if (partner.food === profile.food) {
+    msg += ` О, мы оба любим ${partner.food.toLowerCase()}! Это же вкусно 🤤`;
+  } else if (partner.season === profile.season) {
+    msg += ` Класс, что мы оба любим ${partner.season.toLowerCase()}! Моё любимое время года.`;
+  } else if (partner.traits.length > 0) {
+    msg += ` Я, например, ${partner.traits[0]}. А ты чем увлекаешься?`;
+  }
+
+  return msg;
+}
+
+// ===== Chat logic =====
+function addMessage(text, who) {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + who;
+  div.textContent = text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg them typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+function hideTyping() {
+  const t = document.getElementById('typingIndicator');
+  if (t) t.remove();
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage(text, 'me');
+  input.value = '';
+  if (tg) tg.HapticFeedback && tg.HapticFeedback.impactOccurred('light');
+
+  // Simulate typing
+  setTimeout(showTyping, 300);
+  const delay = 900 + Math.min(2500, text.length * 40);
+  setTimeout(() => {
+    hideTyping();
+    const reply = generateReply(text);
+    addMessage(reply, 'them');
+  }, delay);
+}
+
+// ===== Reply generator (context-aware) =====
+function generateReply(userText) {
+  const t = userText.toLowerCase();
+
+  // Greetings
+  if (/^(привет|здравствуй|хай|хэй|hello|hi|добр)/.test(t)) {
+    return pick([
+      'Привет! Как твои дела сегодня?',
+      'Хей! Рад(а) тебя слышать 😊',
+      'Привет-привет! Что нового?'
+    ], t.length);
+  }
+
+  // How are you
+  if (/как (дела|ты|жизнь|настро)/.test(t)) {
+    return pick([
+      'Всё отлично! Только что закончил(а) читать кое-что интересное.',
+      'Хорошо, спасибо! А у тебя как?',
+      'Нормально, работаю над собой. Ты как?'
+    ], t.length);
+  }
+
+  // Books
+  if (/книг|чита|литератур|автор|роман/.test(t)) {
+    const book = partner.books[0] || 'фантастика';
+    return pick([
+      `О, книги — это моя тема! Сейчас читаю что-то в жанре ${book.toLowerCase()}. А ты что посоветуешь?`,
+      `Я обожаю ${book.toLowerCase()}! Есть какие-то любимые авторы?`,
+      `Книги — это космос. Последняя прочитанная меня прям зацепила. Ты что сейчас читаешь?`
+    ], t.length);
+  }
+
+  // Movies
+  if (/фильм|кино|сериал|смотр|мелодрам|ужас|боевик|аниме/.test(t)) {
+    const mov = partner.movies[0] || 'драма';
+    return pick([
+      `Кино — это святое! Я фанат ${mov.toLowerCase()}. А ты что последнее смотрел(а)?`,
+      `О, давай про кино! Обожаю ${mov.toLowerCase()}. Есть рекомендации?`,
+      `Сериалы/фильмы — мой способ отдохнуть. Что посоветуешь из ${mov.toLowerCase()}?`
+    ], t.length);
+  }
+
+  // Food
+  if (/еда|кушать|голод|вкусн|пицц|суш|паст|бургер|салат/.test(t)) {
+    return pick([
+      `О, тема еды! Я обожаю ${partner.food.toLowerCase()}. А ты что любишь?`,
+      `Еда — это важно! Моё любимое — ${partner.food.toLowerCase()}. А у тебя?`,
+      `Я могу говорить о еде вечно! Особенно люблю ${partner.food.toLowerCase()}.`
+    ], t.length);
+  }
+
+  // Season
+  if (/сезон|весн|лет|осен|зим|погод/.test(t)) {
+    return pick([
+      `Моё любимое время года — ${partner.season.toLowerCase()}. А твоё?`,
+      `Обожаю ${partner.season.toLowerCase()}! В это время года что-то особенное.`,
+      `${partner.season} — это магия! Согласен(на)?`
+    ], t.length);
+  }
+
+  // Zodiac
+  if (/зодиак|знак|гороскоп|астролог|${partner.zodiac.split(' ')[1]?.toLowerCase()}/.test(t)) {
+    return `Я ${partner.zodiac}, и это правда во многом про меня 😄 А ты как думаешь, знаки влияют на характер?`;
+  }
+
+  // Cats
+  if (/кош|кот|кис/.test(t) && partner.traits.includes('кошатник')) {
+    return 'Обожаю кошек! У меня дома живёт пушистый хулиган 🐱 А у тебя есть питомцы?';
+  }
+  if (/кош|кот|кис/.test(t)) {
+    return 'Кошки классные! А я больше по собакам, хотя признаю — они милые 🐱';
+  }
+
+  // Dogs
+  if (/собак|пёс|пес|щенок/.test(t) && partner.traits.includes('собачник')) {
+    return 'Собаки — лучшие друзья! Мой пёс каждый день встречает меня как героя 🐕 А ты любишь собак?';
+  }
+  if (/собак|пёс|пес|щенок/.test(t)) {
+    return 'Собаки — это здорово! Хотя я больше кошатник. Но уважаю собачников!';
+  }
+
+  // Music
+  if (/музык|песн|группа|исполнител|трек|альбом/.test(t)) {
+    return 'Музыка — это жизнь! А какой жанр тебе ближе? Я могу слушать часами.';
+  }
+
+  // Games
+  if (/игр|game|playstation|xbox|pc|геймер/.test(t) && partner.traits.includes('геймер')) {
+    return 'Геймер тут! 🎮 Во что играешь? Я недавно залип(ла) на одну вещь.';
+  }
+
+  // Travel
+  if (/путеш|travel|стран|город|отпуск|море/.test(t)) {
+    return 'Путешествия — это лучшее, что есть! Где ты мечтаете побывать?';
+  }
+
+  // Age
+  if (/сколько.*лет|возраст|ты.*стар|тебе.*лет/.test(t)) {
+    return `Мне ${partner.age}. А тебе?`;
+  }
+
+  // Compliments
+  if (/красив|милая|милый|классн|крут|нрав/.test(t)) {
+    return pick(['Спасибо, приятно 😊','Ой, ты тоже ничего!','💙'], t.length);
+  }
+
+  // Questions about partner
+  if (/расскажи о себе|кто ты|что любишь|чем увлекаешься/.test(t)) {
+    const traitsStr = partner.traits.slice(0, 2).join(' и ');
+    return `Ну, я ${traitsStr}. Люблю ${partner.books[0]?.toLowerCase() || 'хорошие книги'} и ${partner.movies[0]?.toLowerCase() || 'кино'}. А ты?`;
+  }
+
+  // Goodbye
+  if (/пока|до свидан|bye|прощай|спокойной/.test(t)) {
+    return pick(['Пока! Было приятно поболтать 😊','До связи!','Увидимся! 💙'], t.length);
+  }
+
+  // Thanks
+  if (/спасибо|благодар|thx|thanks/.test(t)) {
+    return 'Пожалуйста! 😊';
+  }
+
+  // Love / feelings
+  if (/люблю тебя|влюб|чувств|отношен/.test(t)) {
+    return 'Ого, какие серьёзные темы! Давай пока просто общаться и узнавать друг друга 😊';
+  }
+
+  // Default - contextual fallback
+  const defaults = [
+    `Интересно! Расскажи подробнее?`,
+    `Хм, а что ты думаешь об этом?`,
+    `Понятно. А я, например, увлекаюсь ${partner.traits[0]}.`,
+    `Ого! А как ты к этому пришёл(ла)?`,
+    `Звучит круто! Я как раз думал(а) о похожем.`,
+    `Слушай, а ты смотрел(а) что-нибудь хорошее в жанре ${partner.movies[0]?.toLowerCase() || 'драма'} lately?`,
+    `Кстати, а ты читал(а) что-нибудь из жанра ${partner.books[0]?.toLowerCase() || 'фантастика'}?`,
+    `А какая твоя любимая еда? Я, например, обожаю ${partner.food.toLowerCase()}.`
+  ];
+  return pick(defaults, t.length + partner.name.length);
+}
+
+// Haptic on option clicks
+document.querySelectorAll('.option').forEach(o => {
+  o.addEventListener('click', () => {
+    if (tg) tg.HapticFeedback && tg.HapticFeedback.impactOccurred('light');
+  });
+});
+</script>
+</body>
+</html>
